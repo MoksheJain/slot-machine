@@ -10,7 +10,7 @@ import (
 type GameState struct {
 	Name    string `json:"name"`
 	Balance uint   `json:"balance"`
-	Started bool   `json:"started`
+	Started bool   `json:"started"`
 }
 
 type StartRequest struct {
@@ -75,11 +75,16 @@ func StartGameHandler(w http.ResponseWriter, r *http.Request) {
 
 func SpinHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
 	var req SpinRequest
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
 
 	gameMutex.Lock()
 	defer gameMutex.Unlock()
