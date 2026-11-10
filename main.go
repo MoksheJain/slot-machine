@@ -1,78 +1,37 @@
 package main
-import "fmt"
 
-// if you want a function to be accessible outside of the package, it must start with a captial letter. If it starts with a lowercase letter, it is private to the package. 
+import (
+	"log"
+	"net/http"
+)
 
-func checkWin(spin [][]string, multipliers map[string]uint) []uint {
-	lines := []uint{}
-	for _, row := range spin {
-		win := true
-		checkSymbol := row[0]
-		for _, symbol := range row[1:] {
-			if symbol != checkSymbol {
-				win = false
-				break
-			}
+func corsMiddleWare(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:5173")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
+			return
 		}
-		if win {
-			lines = append(lines, multipliers[checkSymbol])
-		} else {
-			lines = append(lines, 0)
-		}
-	}
-	return lines
+
+		next.ServeHTTP(w, r)
+	})
 }
 
 func main() {
+	mux := http.NewServeMux()
 
-	// A is the most rare symbol, D is the most common symbol. The payout is based on the rarity of the symbol.
+	mux.HandleFunc("/api/game/start", StartGameHandler)
+	mux.HandleFunc("/api/game/spin", SpinHandler)
+	mux.HandleFunc("/api/game/state", GameStateHandler)
 
-	symbols := map[string]uint {
-		"A": 4,
-		"B": 7,
-		"C": 12,
-		"D": 18,
+	log.Println("Casino Royale Backend running on http://localhost:8080")
+
+	handler := corsMiddleWare(mux)
+	err := http.ListenAndServe(":8080", handler)
+	if err != nil {
+		log.Fatal(err)
 	}
-
-	symbolArr := GenerateSymbolArray(symbols)
-	spin := GetSpin(symbolArr, 3, 3)
-	PrintSpin(spin)
-
-	multipliers := map[string]uint {
-		"A": 20,
-		"B": 10,
-		"C": 5,
-		"D": 2,
-	}
-
-	balance := uint(200)
-	GetName()
-	
-	for balance > 0 {
-		bet := GetBet(balance)
-		balance -= bet
-		if bet == 0 {
-			break
-		}
-		spin := GetSpin(symbolArr, 3, 3)
-		PrintSpin(spin)
-
-		// check win, update balance, print new balance
-		winningLines := checkWin(spin, multipliers)
-		fmt.Println(winningLines)
-
-		for i, multi := range winningLines {
-			win := multi * bet
-			balance += win
-			if multi > 0 {
-				fmt.Printf("Won $%d, (%dx) on line #%d\n", win, multi, i + 1)
-			}
-		}
-
-		fmt.Printf("You have bet $%d. Your new balance is $%d.\n", bet, balance)
-	}
-
-	fmt.Printf("You left with, $%d. Thanks for playing!\n", balance)
-
-	// fmt.Println("Hello World")
 }

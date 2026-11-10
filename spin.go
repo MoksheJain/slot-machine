@@ -1,36 +1,35 @@
 package main
-import "fmt"
 import "math/rand"
 
 func GenerateSymbolArray(symbols map[string]uint) []string {
 	symbolArr := []string{}
+	
 	for symbol, count := range symbols {
 		for i := 0; i < int(count); i++ {
 			symbolArr = append(symbolArr, symbol)
 		}
 	}
+
 	return symbolArr
 }
 
-func getRandomNumber(min int, max int) int {
-	randomNumber := rand.Intn(max - min + 1) + min
-	return randomNumber
-}
-
 func GetSpin(reel []string, rows int, cols int) [][]string {
-	result := [][]string{}
+	if rows <= 0 || cols <= 0 || rows > len(reel) {
+		return nil
+	}
 
-	for i := 0; i < rows; i++ {
-		result = append(result, []string{})
+	result := make([][]string, rows)
+	for row := range result {
+		result[row] = make([]string, 0, cols)
 	}
 
 	for col := 0; col < cols; col++ {
-		selected := map[int]bool{}
+		selected := make(map[int]bool)
+
 		for row := 0; row < rows; row++ {
-			for true {
-				randomIndex := getRandomNumber(0, len(reel) - 1)
-				_, exists := selected[randomIndex]
-				if !exists {
+			for {
+				randomIndex := rand.Intn(len(reel))
+				if !selected[randomIndex] {
 					selected[randomIndex] = true
 					result[row] = append(result[row], reel[randomIndex])
 					break
@@ -42,14 +41,30 @@ func GetSpin(reel []string, rows int, cols int) [][]string {
 	return result
 }
 
-func PrintSpin(spin [][]string) {
+func CheckWin(spin [][]string, multipliers map[string]uint) []uint {
+	lines := make([]uint, 0, len(spin))
 	for _, row := range spin {
-		for j, symbol := range row {
-			fmt.Printf(symbol) 
-			if j != len(row) - 1 {
-				fmt.Printf(" | ")
+		if len(row) == 0 {
+			lines = append(lines, 0)
+			continue
+		}
+
+		win := true
+		checkSymbol := row[0]
+
+		for _, symbol := range row[1:] {
+			if symbol != checkSymbol {
+				win = false
+				break
 			}
 		}
-		fmt.Println()
+
+		if win {
+			lines = append(lines, multipliers[checkSymbol])
+		} else {
+			lines = append(lines, 0)
+		}
 	}
+
+	return lines
 }
